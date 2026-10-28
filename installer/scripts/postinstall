@@ -1,0 +1,24 @@
+#!/bin/sh
+# =============================================================================
+# Post-installation script for FaceFusion.pkg
+# Automatically executed by macOS Installer.app
+# =============================================================================
+
+APP_PATH="/Applications/FaceFusion.app"
+
+if [ -d "$APP_PATH" ]; then
+    # Ensure correct executable permissions
+    chmod -R 755 "$APP_PATH"
+    if [ -f "$APP_PATH/Contents/MacOS/FaceFusion" ]; then
+        chmod +x "$APP_PATH/Contents/MacOS/FaceFusion"
+    fi
+
+    # Clear Gatekeeper quarantine flag
+    xattr -cr "$APP_PATH" 2>/dev/null || true
+
+    # Create optional CLI shortcut
+    mkdir -p /usr/local/bin 2>/dev/null || true
+    ln -sf "$APP_PATH/Contents/MacOS/FaceFusion" /usr/local/bin/facefusion 2>/dev/null || true
+fi
+
+exit 0

@@ -1,0 +1,15 @@
+OpenRAIL-AS License
+
+Copyright (c) 2026 Henry Ruhs and the FaceFusion Contributors.
+
+FaceFusion is licensed under the OpenRAIL-AS (Responsible AI License - Application Specific).
+
+Terms of Use:
+1. You may use this software for research, personal, and lawful creative purposes.
+2. You agree NOT to use FaceFusion for:
+   - Creating non-consensual sexual or defamatory deepfakes
+   - Generating misleading political misinformation or fraudulent content
+   - Violating any individual's privacy or identity rights
+   - Any activity violating applicable local or international laws
+
+By clicking "Agree", you acknowledge and agree to abide by these responsible usage terms.

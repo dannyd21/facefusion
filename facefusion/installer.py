@@ -8,7 +8,7 @@ from functools import partial
 from types import FrameType
 
 from facefusion import metadata
-from facefusion.common_helper import is_linux, is_windows
+from facefusion.common_helper import is_linux, is_macos, is_windows
 
 LOCALES =\
 {
@@ -31,6 +31,8 @@ if is_windows():
 if is_linux():
 	ONNXRUNTIME_SET['migraphx'] = ('onnxruntime-migraphx', '1.27.1')
 	ONNXRUNTIME_SET['rocm'] = ('onnxruntime-rocm', '1.22.2.post3')
+if is_macos():
+	ONNXRUNTIME_SET['coreml'] = ('onnxruntime', '1.31.0')
 
 
 def cli() -> None:

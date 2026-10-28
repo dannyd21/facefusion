@@ -1,0 +1,79 @@
+name: Build Standalone macOS App (Intel)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-intel-mac:
+    runs-on: macos-13 # Official GitHub Actions Intel x86_64 runner
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install rumps pyinstaller
+
+      - name: Download standalone FFmpeg
+        run: |
+          mkdir -p bin
+          curl -L https://evermeet.cx/ffmpeg/getrelease/zip -o ffmpeg.zip
+          unzip -q ffmpeg.zip -d bin/
+          curl -L https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip -o ffprobe.zip
+          unzip -q ffprobe.zip -d bin/
+          chmod +x bin/ffmpeg bin/ffprobe
+
+      - name: Build Standalone FaceFusion.app
+        run: |
+          export PATH="$PWD/bin:$PATH"
+          python -m PyInstaller launcher/FaceFusion-Standalone.spec --noconfirm
+
+      - name: Inject bundled FFmpeg into App Bundle
+        run: |
+          mkdir -p "dist/FaceFusion.app/Contents/MacOS"
+          cp bin/ffmpeg "dist/FaceFusion.app/Contents/MacOS/"
+          cp bin/ffprobe "dist/FaceFusion.app/Contents/MacOS/"
+
+      - name: Build macOS .pkg Installer
+        run: |
+          pkgbuild \
+            --component "dist/FaceFusion.app" \
+            --install-location "/Applications" \
+            --identifier "io.facefusion.pkg" \
+            --version "3.9.2" \
+            --scripts installer/scripts \
+            FaceFusion-component.pkg
+          productbuild \
+            --distribution installer/distribution.xml \
+            --resources installer/resources \
+            --package-path . \
+            FaceFusion-Installer.pkg
+
+      - name: Upload .pkg Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FaceFusion-macOS-Installer-PKG
+          path: FaceFusion-Installer.pkg
+
+      - name: Package into DMG
+        run: |
+          mkdir -p dmg_root
+          cp -R "dist/FaceFusion.app" dmg_root/
+          ln -s /Applications dmg_root/Applications
+          hdiutil create -volname "FaceFusion" -srcfolder dmg_root -ov -format UDZO FaceFusion-Intel-macOS.dmg
+
+      - name: Upload DMG Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FaceFusion-Intel-macOS
+          path: FaceFusion-Intel-macOS.dmg

@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# =============================================================================
+# FaceFusion Native macOS App Launcher
+# Double-clickable .app bundle executable
+# Zero-terminal, zero-conda setup
+# =============================================================================
+
+# Locate the root facefusion repository folder
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FACEFUSION_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+cd "$FACEFUSION_ROOT" || exit 1
+
+VENV_DIR="$FACEFUSION_ROOT/.venv"
+VENV_PYTHON="$VENV_DIR/bin/python"
+
+# Helper for native macOS notifications
+notify() {
+    osascript -e "display notification \"$1\" with title \"FaceFusion\"" 2>/dev/null
+}
+
+# Helper for native macOS alert dialogs
+alert() {
+    osascript -e "display alert \"FaceFusion\" message \"$1\" as informational buttons {\"OK\"} default button \"OK\"" 2>/dev/null
+}
+
+# ── 1. First-time Setup (Automated, Zero Conda) ────────────────────────────────
+if [ ! -f "$VENV_PYTHON" ]; then
+    notify "Setting up FaceFusion for the first time... Please wait."
+
+    # Find system or installed python3
+    PYTHON_CMD=""
+    for cmd in /usr/local/bin/python3.11 /usr/local/bin/python3 /opt/homebrew/bin/python3.11 /opt/homebrew/bin/python3 /usr/bin/python3 python3; do
+        if command -v "$cmd" >/dev/null 2>&1; then
+            PYTHON_CMD="$cmd"
+            break
+        fi
+    done
+
+    if [ -z "$PYTHON_CMD" ]; then
+        osascript -e 'display alert "FaceFusion Setup" message "Python 3 is required. Please install Python 3 or Xcode Command Line Tools." as critical buttons {"OK"}' 2>/dev/null
+        exit 1
+    fi
+
+    # Create self-contained virtual environment (zero conda)
+    "$PYTHON_CMD" -m venv "$VENV_DIR"
+    if [ ! -f "$VENV_PYTHON" ]; then
+        alert "Failed to create isolated environment."
+        exit 1
+    fi
+
+    # Upgrade pip and install FaceFusion requirements
+    "$VENV_PYTHON" -m pip install --upgrade pip --quiet
+    "$VENV_PYTHON" install.py default --skip-conda
+
+    notify "Setup completed successfully! Starting FaceFusion..."
+fi
+
+# ── 2. Launch FaceFusion & Open Browser ────────────────────────────────────────
+notify "FaceFusion is starting..."
+
+# Start FaceFusion server in background
+"$VENV_PYTHON" facefusion.py run --open-browser &
+SERVER_PID=$!
+
+# Trap exit signals to terminate server cleanly
+cleanup() {
+    kill "$SERVER_PID" 2>/dev/null
+    exit 0
+}
+trap cleanup SIGINT SIGTERM EXIT
+
+# Keep script running while server is alive
+wait "$SERVER_PID"
