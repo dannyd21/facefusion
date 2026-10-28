@@ -32,7 +32,10 @@ if is_linux():
 	ONNXRUNTIME_SET['migraphx'] = ('onnxruntime-migraphx', '1.27.1')
 	ONNXRUNTIME_SET['rocm'] = ('onnxruntime-rocm', '1.22.2.post3')
 if is_macos():
+	import platform
 	ONNXRUNTIME_SET['coreml'] = ('onnxruntime', '1.31.0')
+	if platform.machine() == 'x86_64':
+		ONNXRUNTIME_SET['default'] = ('onnxruntime', '1.23.2')
 
 
 def cli() -> None:
