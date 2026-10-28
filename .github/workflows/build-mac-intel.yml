@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-intel-mac:
-    runs-on: macos-13 # Official GitHub Actions Intel x86_64 runner
+    runs-on: macos-15-intel # Current GitHub Actions Intel x86_64 runner
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

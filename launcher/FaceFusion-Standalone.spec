@@ -77,7 +77,7 @@ exe = EXE(
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=True,
-    target_arch='x86_64',  # Intel Mac
+    target_arch=None,
     icon=str(LAUNCHER_DIR / 'resources' / 'FaceFusion.icns'),
 )
 
