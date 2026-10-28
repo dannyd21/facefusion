@@ -24,25 +24,19 @@ jobs:
           pip install -r requirements.txt
           pip install rumps pyinstaller
 
-      - name: Download standalone FFmpeg
+      - name: Set up FFmpeg
         run: |
-          mkdir -p bin
-          curl -L https://evermeet.cx/ffmpeg/getrelease/zip -o ffmpeg.zip
-          unzip -q ffmpeg.zip -d bin/
-          curl -L https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip -o ffprobe.zip
-          unzip -q ffprobe.zip -d bin/
-          chmod +x bin/ffmpeg bin/ffprobe
+          brew install ffmpeg || true
 
       - name: Build Standalone FaceFusion.app
         run: |
-          export PATH="$PWD/bin:$PATH"
           python -m PyInstaller launcher/FaceFusion-Standalone.spec --noconfirm
 
       - name: Inject bundled FFmpeg into App Bundle
         run: |
           mkdir -p "dist/FaceFusion.app/Contents/MacOS"
-          cp bin/ffmpeg "dist/FaceFusion.app/Contents/MacOS/"
-          cp bin/ffprobe "dist/FaceFusion.app/Contents/MacOS/"
+          cp $(which ffmpeg) "dist/FaceFusion.app/Contents/MacOS/"
+          cp $(which ffprobe) "dist/FaceFusion.app/Contents/MacOS/"
 
       - name: Build macOS .pkg Installer
         run: |
