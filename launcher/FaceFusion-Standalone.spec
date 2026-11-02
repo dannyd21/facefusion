@@ -27,6 +27,7 @@ gradio_rangeslider_datas = collect_data_files('gradio_rangeslider')
 datas = [
     (str(ROOT / 'facefusion'), 'facefusion'),
     (str(ROOT / 'facefusion.ini'), '.'),
+    (str(ROOT / 'facefusion.ico'), '.'),
     (str(LAUNCHER_DIR / 'resources' / 'FaceFusion.icns'), 'resources'),
 ] + gradio_datas + gradio_rangeslider_datas
 

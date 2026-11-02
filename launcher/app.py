@@ -121,6 +121,7 @@ class FaceFusionApp(rumps.App):
 
         self._server_process: subprocess.Popen | None = None
         self._monitor_thread: threading.Thread | None = None
+        self._server_running = False
         self._starting = False
 
         # Build menu
@@ -162,7 +163,7 @@ class FaceFusionApp(rumps.App):
         self.start_server(None)
 
     def start_server(self, _sender):
-        if self._server_process and self._server_process.poll() is None:
+        if self._server_running or (self._server_process and self._server_process.poll() is None):
             return  # already running
         if self._starting:
             return
@@ -175,6 +176,64 @@ class FaceFusionApp(rumps.App):
         thread.start()
 
     def _launch_server(self):
+        if getattr(sys, 'frozen', False):
+            self._launch_bundled_server()
+        else:
+            self._launch_external_server()
+
+    def _launch_bundled_server(self):
+        bin_dir = os.path.dirname(sys.executable)
+        os.environ['PATH'] = bin_dir + os.pathsep + os.environ.get('PATH', '')
+        os.environ['OMP_NUM_THREADS'] = '1'
+        os.environ['SYSTEM_VERSION_COMPAT'] = '0'
+
+        ini_candidates = [
+            os.path.join(bin_dir, 'facefusion.ini'),
+            os.path.join(getattr(sys, '_MEIPASS', ''), 'facefusion.ini'),
+        ]
+        config_args = []
+        for ini in ini_candidates:
+            if os.path.isfile(ini):
+                config_args = ['--config-path', ini]
+                break
+
+        def _run_core():
+            try:
+                import facefusion.core as core
+                sys.argv = [
+                    'facefusion',
+                    'run',
+                    '--server-host', SERVER_HOST,
+                    '--server-port', str(SERVER_PORT),
+                ] + config_args
+                core.cli()
+            except Exception as exc:
+                self._set_status(f'Error: {exc}', error=True)
+                self._starting = False
+                self._server_running = False
+                self.start_item.set_callback(self.start_server)
+
+        server_thread = threading.Thread(target=_run_core, daemon=True)
+        server_thread.start()
+
+        # Wait for server to become ready
+        deadline = time.time() + STARTUP_TIMEOUT
+        while time.time() < deadline:
+            if is_server_ready():
+                break
+            time.sleep(1)
+        else:
+            self._set_status('Timed out waiting for server', error=True)
+            self._starting = False
+            self.start_item.set_callback(self.start_server)
+            return
+
+        self._starting = False
+        self._server_running = True
+        self._set_status('Running', running=True)
+        webbrowser.open(SERVER_URL)
+
+    def _launch_external_server(self):
         python = find_python()
         facefusion_py = str(FACEFUSION_ROOT / 'facefusion.py')
 
@@ -217,6 +276,7 @@ class FaceFusionApp(rumps.App):
             return
 
         self._starting = False
+        self._server_running = True
         self._set_status('Running', running=True)
         webbrowser.open(SERVER_URL)
 
@@ -229,6 +289,7 @@ class FaceFusionApp(rumps.App):
         while self._server_process and self._server_process.poll() is None:
             time.sleep(2)
         if not self._starting:
+            self._server_running = False
             self._set_status('Stopped')
 
     def stop_server(self, _sender):
@@ -239,6 +300,7 @@ class FaceFusionApp(rumps.App):
             except subprocess.TimeoutExpired:
                 self._server_process.kill()
         self._server_process = None
+        self._server_running = False
         self._set_status('Stopped')
 
     # ------------------------------------------------------------------

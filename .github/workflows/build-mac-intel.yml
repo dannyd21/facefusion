@@ -41,6 +41,8 @@ jobs:
 
       - name: Build macOS .pkg Installer
         run: |
+          chmod -R 755 installer/scripts
+          chmod -R 755 dist/FaceFusion.app
           pkgbuild \
             --component "dist/FaceFusion.app" \
             --install-location "/Applications" \
